@@ -12,3 +12,12 @@ docs/
 
 # Dotenv file
 .env
+
+# ide files
+.vscode
+.history
+
+# reports
+lcov.info
+report.*
+

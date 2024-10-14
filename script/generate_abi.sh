@@ -1,6 +1,6 @@
 #!/bin/bash
 chmod +x script/generate_abi.sh
-if  command -v forge > /dev/null; then
+if command -v forge > /dev/null; then
     echo "forge command has found"
 else
     curl -L https://foundry.paradigm.xyz | bash
@@ -20,14 +20,26 @@ if [ ! -d "flattenContracts" ]; then
   mkdir flattenContracts
 fi
 
-# Loop through all .sol files in the src directory
-for solfile in src/*.sol; do
-  # Get the base name of the .sol file (without directory and extension)
-  base=$(basename "$solfile" .sol)
-  
-  # Flatten the .sol file and generate the ABI
-  forge flatten "$solfile" -o "flattenContracts/${base}_flattened.sol"
-  forge inspect "flattenContracts/${base}_flattened.sol:$base" abi > "abi/${base}.json"
-done
+# Function to process each .sol file
+process_sol_file() {
+    local sol_file=$1
+    local relative_path=${sol_file#src/}
+    local dir=$(dirname "$relative_path")
+    local base_name=$(basename "$sol_file" .sol)
 
-echo "ABI files have generated"
+    # Create the output directories if they don't exist
+    mkdir -p "flattenContracts/$dir"
+    mkdir -p "abi/$dir"
+
+    # Flatten the .sol file and generate the ABI
+    forge flatten "$sol_file" -o "flattenContracts/$dir/${base_name}_flattened.sol"
+    forge inspect "flattenContracts/$dir/${base_name}_flattened.sol:$base_name" abi > "abi/$dir/${base_name}.json"
+}
+
+# Export the function so it can be used by find
+export -f process_sol_file
+
+# Find all .sol files in the src directory and process them
+find src -name "*.sol" -exec bash -c 'process_sol_file "$0"' {} \;
+
+echo "Flattened and ABI files have been generated."
